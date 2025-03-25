@@ -2,7 +2,8 @@ from atproto import models, AtUri, CAR
 import at_client as at
 from atproto_firehose import FirehoseSubscribeReposClient, parse_subscribe_repos_message
 
-from at_client import id_resolver
+from safe_threading import safe_thread
+
 from date_parse_client import calendar
 from datetime import datetime
 from json import dumps
@@ -64,10 +65,16 @@ def handle_firehose_event(message_frame):
 
 def listen_for_mentions(stop_event):
     client = FirehoseSubscribeReposClient()
-    client.start(handle_firehose_event)
+
+    def run(_):
+        client.start(handle_firehose_event)
+
+    firehose_thread = safe_thread(target=run, name="FirehoseThread", daemon=True)
+    firehose_thread.start()
 
     try:
         while not stop_event.is_set():
             sleep(0.5)
     finally:
         client.stop()
+        firehose_thread.join(timeout=5)
