@@ -1,6 +1,8 @@
-from atproto import client_utils
+from atproto import client_utils, models
 from time import time, sleep
 from json import loads
+
+from atproto_client.models.app.bsky.feed.post import ReplyRef
 
 from at_client import client
 from redis_client import redis
@@ -9,14 +11,18 @@ from redis_client import redis
 def run_task(task):
     handle = task["handle"]
     did = task["did"]
-    post_url = task["post_url"]
+    cid = task["post_cid"]
+    uri = task["post_uri"]
+    parent = models.com.atproto.repo.strong_ref.Main(cid=cid, uri=uri)
+    reply_to = ReplyRef(parent=parent,root=parent)
 
     post = client_utils.TextBuilder()
-    post.mention(handle, did)
-    post.text(" Your reminder is ready!")
-    post.link("Post to remind about", post_url)
+    post.mention(f"@{handle}", did)
+    post.text(", your reminder is ready!")
 
-    client.send_post(post)
+    print(f"Handle:\t{handle}\nDID:\t{did}")
+    print(f"URI:\t{uri}\nCID:\t{cid}")
+    client.send_post(post, reply_to=reply_to)
 
 
 def query_for_and_post_reminders(stop_event):

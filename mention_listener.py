@@ -26,13 +26,13 @@ def parse_create_op(commit):
                         for facet in record.facets:
                             for feature in facet.features:
                                 if isinstance(feature, Mention) and feature.did == at.did:
-                                    return record.text, uri
+                                    return record.text, uri, op.cid
 
 
-def enqueue_reminder(did, post_url, run_at):
+def enqueue_reminder(did, run_at, post_cid, post_uri):
     did_doc = at.id_resolver.did.resolve(did)
     handle = did_doc.also_known_as[0].removeprefix("at://")
-    task = {"did": did, "handle": handle, "post_url": post_url}
+    task = {"did": did, "handle": handle, "post_cid": post_cid, "post_uri": post_uri}
     redis.zadd("task_queue", {dumps(task): run_at.timestamp()})
 
 
@@ -53,13 +53,13 @@ def handle_firehose_event(message_frame):
     result = parse_create_op(commit)
     if not result:
         return
-    message, uri = result
+    message, uri, cid = result
     run_at = parse_run_at(message)
     if not run_at or run_at <= datetime.now():
         return
 
-    post_url = f"https://bsky.app/profile/{commit.repo}/post/{uri.rkey}"
-    enqueue_reminder(commit.repo, post_url, run_at)
+    post_uri = f"at://{commit.repo}/app.bsky.feed.post/{uri.rkey}"
+    enqueue_reminder(commit.repo, run_at, str(cid), post_uri)
 
 
 def listen_for_mentions(stop_event):
