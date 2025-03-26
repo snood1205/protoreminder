@@ -23,7 +23,8 @@ def text_builder_with_mention(handle, did, text):
     return post
 
 
-class HandleResolveException(BaseException): pass
+class HandleResolveException(BaseException):
+    pass
 
 
 def resolve_handle(did):
@@ -31,17 +32,20 @@ def resolve_handle(did):
     aka = did_doc.also_known_as
     if not aka or not aka[0]:
         raise HandleResolveException(f"Unable to resolve also-known-as for DID {did}.")
-    handle = aka[0].removeprefix('at://')
+    handle = aka[0].removeprefix("at://")
     if handle == aka[0]:
         raise HandleResolveException(f"Malformed handle URI for DID {did}.")
     return did_doc.also_known_as[0].removeprefix("at://")
 
 
-class DidResolveException(BaseException): pass
+class DidResolveException(BaseException):
+    pass
 
 
 def resolve_did(handle):
     did = id_resolver.handle.resolve(handle)
     if not did:
-        raise DidResolveException(f"Handle {handle} failed to resolve to a DID after 5 attempts.")
+        raise DidResolveException(
+            f"Handle {handle} failed to resolve to a DID after 5 attempts."
+        )
     return did

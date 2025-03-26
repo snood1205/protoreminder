@@ -9,7 +9,9 @@ def main():
     signal(SIGINT, handle_shutdown_signal)
     signal(SIGTERM, handle_shutdown_signal)
     listener_thread = safe_thread(name="MentionListener", target=listen_for_mentions)
-    scheduler_thread = safe_thread(name="ReminderScheduler", target=query_for_and_post_reminders)
+    scheduler_thread = safe_thread(
+        name="ReminderScheduler", target=query_for_and_post_reminders
+    )
     listener_thread.start()
     scheduler_thread.start()
     listener_thread.join()

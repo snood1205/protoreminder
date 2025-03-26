@@ -27,7 +27,10 @@ def parse_create_op(commit):
                     if record.facets:
                         for facet in record.facets:
                             for feature in facet.features:
-                                if isinstance(feature, Mention) and feature.did == account_did:
+                                if (
+                                    isinstance(feature, Mention)
+                                    and feature.did == account_did
+                                ):
                                     return record.text, uri, op.cid
 
 
@@ -48,7 +51,7 @@ def parse_run_at(message):
 def handle_firehose_event(message_frame):
     commit = parse_subscribe_repos_message(message_frame)
     if not (
-            isinstance(commit, models.ComAtprotoSyncSubscribeRepos.Commit) and commit.blocks
+        isinstance(commit, models.ComAtprotoSyncSubscribeRepos.Commit) and commit.blocks
     ):
         return
     result = parse_create_op(commit)
@@ -56,8 +59,10 @@ def handle_firehose_event(message_frame):
         return
     message, uri, cid = result
     run_at = parse_run_at(message)
-    if not run_at: return handle_no_run_at(commit.repo)
-    if run_at <= datetime.now(): return handle_run_at_in_past(commit.repo)
+    if not run_at:
+        return handle_no_run_at(commit.repo)
+    if run_at <= datetime.now():
+        return handle_run_at_in_past(commit.repo)
 
     post_uri = f"at://{commit.repo}/app.bsky.feed.post/{uri.rkey}"
     enqueue_reminder(commit.repo, run_at, str(cid), post_uri)
