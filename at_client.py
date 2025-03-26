@@ -10,9 +10,10 @@ account_did = client.me.did
 id_resolver = IdResolver()
 
 
-def post_reply(post, parent_cid, parent_uri):
-    parent = models.com.atproto.repo.strong_ref.Main(cid=parent_cid, uri=parent_uri)
-    reply_to = ReplyRef(parent=parent, root=parent)
+def post_reply(post, cid, parent_uri, root_uri):
+    parent = models.com.atproto.repo.strong_ref.Main(cid=cid, uri=parent_uri)
+    root = models.com.atproto.repo.strong_ref.Main(cid=cid, uri=root_uri)
+    reply_to = ReplyRef(parent=parent, root=root)
     client.send_post(post, reply_to=reply_to)
 
 

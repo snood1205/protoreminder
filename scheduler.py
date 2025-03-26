@@ -8,11 +8,12 @@ from redis_client import redis
 def run_task(task):
     handle = task["handle"]
     did = task["did"]
-    parent_cid = task["post_cid"]
-    parent_uri = task["post_uri"]
+    cid = task["cid"]
+    parent_uri = task["parent_uri"]
+    root_uri = task["root_uri"]
 
     post = build_mention_post(handle, did, ", your reminder is ready!")
-    post_reply(post, parent_cid, parent_uri)
+    post_reply(post, cid, parent_uri, root_uri)
 
 
 def query_for_and_post_reminders(stop_event):

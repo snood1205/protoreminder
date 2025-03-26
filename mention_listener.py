@@ -29,17 +29,21 @@ def parse_create_op(commit):
         if not blocks:
             continue
         record = models.get_or_create(blocks, strict=False)
-        if not record.facets:
-            continue
-        for facet in record.facets:
-            for feature in facet.features:
-                if isinstance(feature, Mention) and feature.did == account_did:
-                    return record.text, uri, op.cid
+        if record.facets:
+            for facet in record.facets:
+                for feature in facet.features:
+                    if isinstance(feature, Mention) and feature.did == account_did:
+                        return record.text, uri, op.cid, record.reply
+        reply = getattr(record, "reply", None)
+        if reply:
+            parent_did = AtUri.from_str(reply.parent.uri).hostname
+            if parent_did == account_did:
+                return record.text, uri, str(op.cid), record.reply
 
 
-def enqueue_reminder(did, run_at, post_cid, post_uri):
+def enqueue_reminder(did, run_at, cid, parent_uri, root_uri):
     handle = resolve_handle(did)
-    task = {"did": did, "handle": handle, "post_cid": post_cid, "post_uri": post_uri}
+    task = {"did": did, "handle": handle, "cid": cid, "parent_uri": parent_uri, "root_uri": root_uri}
     redis.zadd("task_queue", {dumps(task): run_at.timestamp()})
 
 
@@ -60,15 +64,16 @@ def handle_firehose_event(message_frame):
     result = parse_create_op(commit)
     if not result:
         return
-    message, uri, cid = result
-    post_uri = f"at://{commit.repo}/app.bsky.feed.post/{uri.rkey}"
+    message, uri, cid, reply = result
+    parent_uri = reply.parent.uri if reply else f"at://{commit.repo}/app.bsky.feed.post/{uri.rkey}"
+    root_uri = reply.root.uri if reply else parent_uri
     run_at = parse_run_at(message)
     if not run_at:
-        return handle_no_run_at(commit.repo, cid, post_uri)
+        return handle_no_run_at(commit.repo, cid, parent_uri, root_uri)
     if run_at <= datetime.now():
-        return handle_run_at_in_past(commit.repo, cid, post_uri)
+        return handle_run_at_in_past(commit.repo, cid, parent_uri, root_uri, run_at)
 
-    enqueue_reminder(commit.repo, run_at, str(cid), post_uri)
+    enqueue_reminder(commit.repo, run_at, str(cid), parent_uri, root_uri)
 
 
 def listen_for_mentions(stop_event):
