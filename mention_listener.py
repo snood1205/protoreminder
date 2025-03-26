@@ -1,4 +1,8 @@
 from atproto import models, AtUri, CAR
+from atproto_core.cid import CIDType as CID
+from atproto_client.models.app.bsky.richtext.facet import Mention
+from atproto_client.models.com.atproto.sync.subscribe_repos import Commit
+from atproto_firehose.models import MessageFrame
 from at_client import AtClient
 from atproto_firehose import FirehoseSubscribeReposClient, parse_subscribe_repos_message
 from error_handler import ErrorHandler
@@ -10,15 +14,13 @@ from nlp_client import nlp
 from redis_client import redis
 from time import sleep
 
-Mention = models.app.bsky.richtext.facet.Mention
-
 
 class MentionListener:
     def __init__(self, at_client: AtClient, error_handler: ErrorHandler):
         self.at_client = at_client
         self.error_handler = error_handler
 
-    def parse_create_op(self, commit):
+    def parse_create_op(self, commit: Commit) -> tuple[str, AtUri, CID | None] | None:
         car = CAR.from_bytes(commit.blocks)
         for op in commit.ops:
             if op.action != "create" or not op.cid:
@@ -34,13 +36,10 @@ class MentionListener:
                 continue
             for facet in record.facets:
                 for feature in facet.features:
-                    if (
-                        isinstance(feature, Mention)
-                        and feature.did == self.at_client.account_did
-                    ):
+                    if isinstance(feature, Mention) and feature.did == self.at_client.account_did:
                         return record.text, uri, op.cid
 
-    def enqueue_reminder(self, did, run_at, post_cid, post_uri):
+    def enqueue_reminder(self, did: str, run_at: datetime, post_cid: str, post_uri: str):
         handle = self.at_client.resolve_handle(did)
         task = {
             "did": did,
@@ -51,19 +50,16 @@ class MentionListener:
         redis.zadd("task_queue", {dumps(task): run_at.timestamp()})
 
     @staticmethod
-    def parse_run_at(message):
+    def parse_run_at(message: str) -> datetime | None:
         doc = nlp(message)
         for ent in doc.ents:
             if ent.label_ in ("DATE", "TIME"):
                 parsed_date_struct, _ = calendar.parse(ent.text)
                 return datetime(*parsed_date_struct[:6])
 
-    def handle_firehose_event(self, message_frame):
+    def handle_firehose_event(self, message_frame: MessageFrame) -> None:
         commit = parse_subscribe_repos_message(message_frame)
-        if not (
-            isinstance(commit, models.ComAtprotoSyncSubscribeRepos.Commit)
-            and commit.blocks
-        ):
+        if not (isinstance(commit, Commit) and commit.blocks):
             return
         result = self.parse_create_op(commit)
         if not result:

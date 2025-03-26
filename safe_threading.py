@@ -3,9 +3,7 @@ from threading import Event, Thread
 
 shutdown_event = Event()
 
-basicConfig(
-    level=INFO, format="%(asctime)s [%(levelname)s] [%(threadName)s] %(message)s"
-)
+basicConfig(level=INFO, format="%(asctime)s [%(levelname)s] [%(threadName)s] %(message)s")
 
 
 def safe_thread(name, target, **kwargs):

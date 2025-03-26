@@ -3,7 +3,7 @@ from error_handler import ErrorHandler
 from mention_listener import MentionListener
 from scheduler import Scheduler
 from signal import signal, SIGINT, SIGTERM
-from safe_threading import handle_shutdown_signal, safe_thread, shutdown_event
+from safe_threading import handle_shutdown_signal, safe_thread
 
 
 def main():
