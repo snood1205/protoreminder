@@ -16,7 +16,7 @@ def post_reply(post, parent_cid, parent_uri):
     client.send_post(post, reply_to=reply_to)
 
 
-def text_builder_with_mention(handle, did, text):
+def build_mention_post(handle, did, text):
     post = client_utils.TextBuilder()
     post.mention(f"@{handle}", did)
     post.text(text)

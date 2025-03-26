@@ -18,20 +18,23 @@ Mention = models.app.bsky.richtext.facet.Mention
 def parse_create_op(commit):
     car = CAR.from_bytes(commit.blocks)
     for op in commit.ops:
-        if op.action == "create" and op.cid:
-            uri = AtUri.from_str(f"at://{commit.repo}/{op.path}")
-            if uri.collection == "app.bsky.feed.post":
-                blocks = car.blocks.get(op.cid)
-                if blocks:
-                    record = models.get_or_create(blocks, strict=False)
-                    if record.facets:
-                        for facet in record.facets:
-                            for feature in facet.features:
-                                if (
-                                    isinstance(feature, Mention)
-                                    and feature.did == account_did
-                                ):
-                                    return record.text, uri, op.cid
+        if op.action != "create" or not op.cid:
+            continue
+
+        uri = AtUri.from_str(f"at://{commit.repo}/{op.path}")
+        if uri.collection != "app.bsky.feed.post":
+            continue
+
+        blocks = car.blocks.get(op.cid)
+        if not blocks:
+            continue
+        record = models.get_or_create(blocks, strict=False)
+        if not record.facets:
+            continue
+        for facet in record.facets:
+            for feature in facet.features:
+                if isinstance(feature, Mention) and feature.did == account_did:
+                    return record.text, uri, op.cid
 
 
 def enqueue_reminder(did, run_at, post_cid, post_uri):
@@ -51,20 +54,20 @@ def parse_run_at(message):
 def handle_firehose_event(message_frame):
     commit = parse_subscribe_repos_message(message_frame)
     if not (
-        isinstance(commit, models.ComAtprotoSyncSubscribeRepos.Commit) and commit.blocks
+            isinstance(commit, models.ComAtprotoSyncSubscribeRepos.Commit) and commit.blocks
     ):
         return
     result = parse_create_op(commit)
     if not result:
         return
     message, uri, cid = result
+    post_uri = f"at://{commit.repo}/app.bsky.feed.post/{uri.rkey}"
     run_at = parse_run_at(message)
     if not run_at:
-        return handle_no_run_at(commit.repo)
+        return handle_no_run_at(commit.repo, cid, post_uri)
     if run_at <= datetime.now():
-        return handle_run_at_in_past(commit.repo)
+        return handle_run_at_in_past(commit.repo, cid, post_uri)
 
-    post_uri = f"at://{commit.repo}/app.bsky.feed.post/{uri.rkey}"
     enqueue_reminder(commit.repo, run_at, str(cid), post_uri)
 
 

@@ -1,7 +1,7 @@
 from time import time, sleep
 from json import loads
 
-from at_client import text_builder_with_mention, post_reply
+from at_client import build_mention_post, post_reply
 from redis_client import redis
 
 
@@ -11,7 +11,7 @@ def run_task(task):
     parent_cid = task["post_cid"]
     parent_uri = task["post_uri"]
 
-    post = text_builder_with_mention(handle, did, ", your reminder is ready!")
+    post = build_mention_post(handle, did, ", your reminder is ready!")
     post_reply(post, parent_cid, parent_uri)
 
 
