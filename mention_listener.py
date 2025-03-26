@@ -1,7 +1,8 @@
 from atproto import models, AtUri, CAR
-import at_client as at
+from at_client import account_did, resolve_handle
 from atproto_firehose import FirehoseSubscribeReposClient, parse_subscribe_repos_message
 
+from error_handler import handle_no_run_at, handle_run_at_in_past
 from safe_threading import safe_thread
 
 from date_parse_client import calendar
@@ -17,22 +18,27 @@ Mention = models.app.bsky.richtext.facet.Mention
 def parse_create_op(commit):
     car = CAR.from_bytes(commit.blocks)
     for op in commit.ops:
-        if op.action == "create" and op.cid:
-            uri = AtUri.from_str(f"at://{commit.repo}/{op.path}")
-            if uri.collection == "app.bsky.feed.post":
-                blocks = car.blocks.get(op.cid)
-                if blocks:
-                    record = models.get_or_create(blocks, strict=False)
-                    if record.facets:
-                        for facet in record.facets:
-                            for feature in facet.features:
-                                if isinstance(feature, Mention) and feature.did == at.did:
-                                    return record.text, uri, op.cid
+        if op.action != "create" or not op.cid:
+            continue
+
+        uri = AtUri.from_str(f"at://{commit.repo}/{op.path}")
+        if uri.collection != "app.bsky.feed.post":
+            continue
+
+        blocks = car.blocks.get(op.cid)
+        if not blocks:
+            continue
+        record = models.get_or_create(blocks, strict=False)
+        if not record.facets:
+            continue
+        for facet in record.facets:
+            for feature in facet.features:
+                if isinstance(feature, Mention) and feature.did == account_did:
+                    return record.text, uri, op.cid
 
 
 def enqueue_reminder(did, run_at, post_cid, post_uri):
-    did_doc = at.id_resolver.did.resolve(did)
-    handle = did_doc.also_known_as[0].removeprefix("at://")
+    handle = resolve_handle(did)
     task = {"did": did, "handle": handle, "post_cid": post_cid, "post_uri": post_uri}
     redis.zadd("task_queue", {dumps(task): run_at.timestamp()})
 
@@ -55,11 +61,13 @@ def handle_firehose_event(message_frame):
     if not result:
         return
     message, uri, cid = result
-    run_at = parse_run_at(message)
-    if not run_at or run_at <= datetime.now():
-        return
-
     post_uri = f"at://{commit.repo}/app.bsky.feed.post/{uri.rkey}"
+    run_at = parse_run_at(message)
+    if not run_at:
+        return handle_no_run_at(commit.repo, cid, post_uri)
+    if run_at <= datetime.now():
+        return handle_run_at_in_past(commit.repo, cid, post_uri)
+
     enqueue_reminder(commit.repo, run_at, str(cid), post_uri)
 
 

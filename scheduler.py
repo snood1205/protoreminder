@@ -1,28 +1,18 @@
-from atproto import client_utils, models
 from time import time, sleep
 from json import loads
 
-from atproto_client.models.app.bsky.feed.post import ReplyRef
-
-from at_client import client
+from at_client import build_mention_post, post_reply
 from redis_client import redis
 
 
 def run_task(task):
     handle = task["handle"]
     did = task["did"]
-    cid = task["post_cid"]
-    uri = task["post_uri"]
-    parent = models.com.atproto.repo.strong_ref.Main(cid=cid, uri=uri)
-    reply_to = ReplyRef(parent=parent,root=parent)
+    parent_cid = task["post_cid"]
+    parent_uri = task["post_uri"]
 
-    post = client_utils.TextBuilder()
-    post.mention(f"@{handle}", did)
-    post.text(", your reminder is ready!")
-
-    print(f"Handle:\t{handle}\nDID:\t{did}")
-    print(f"URI:\t{uri}\nCID:\t{cid}")
-    client.send_post(post, reply_to=reply_to)
+    post = build_mention_post(handle, did, ", your reminder is ready!")
+    post_reply(post, parent_cid, parent_uri)
 
 
 def query_for_and_post_reminders(stop_event):
