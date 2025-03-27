@@ -1,12 +1,13 @@
 from atproto import Client, IdResolver, client_utils
 from atproto_client.models.app.bsky.feed.post import ReplyRef
 from atproto_client.models.com.atproto.repo.strong_ref import Main
+
 from config import ACCOUNT_HANDLE, ACCOUNT_PASSWORD
 from exceptions import DidResolveException, HandleResolveException
 
 
 class AtClient:
-    def __init__(self):
+    def __init__(self) -> None:
         self.client = Client()
         self.client.login(ACCOUNT_HANDLE, ACCOUNT_PASSWORD)
         self.account_did = self.client.me.did
@@ -32,12 +33,10 @@ class AtClient:
         handle = aka[0].removeprefix("at://")
         if handle == aka[0]:
             raise HandleResolveException(f"Malformed handle URI for DID {did}.")
-        return did_doc.also_known_as[0].removeprefix("at://")
+        return str(did_doc.also_known_as[0].removeprefix("at://"))
 
     def resolve_did(self, handle: str) -> str:
         did = self.id_resolver.handle.resolve(handle)
         if not did:
             raise DidResolveException(f"@{handle} failed to resolve to a DID.")
-        return did
-
-
+        return str(did)

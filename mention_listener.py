@@ -1,19 +1,22 @@
-from at_client import AtClient
-from atproto import models, AtUri, CAR
+from datetime import datetime
+from json import dumps
+from threading import Event
+from time import sleep
+from typing import Any
+
+from atproto import CAR, AtUri, models
 from atproto_client.models.app.bsky.richtext.facet import Mention
 from atproto_client.models.com.atproto.sync.subscribe_repos import Commit
 from atproto_core.cid import CIDType as CID
 from atproto_firehose import FirehoseSubscribeReposClient, parse_subscribe_repos_message
 from atproto_firehose.models import MessageFrame
+
+from at_client import AtClient
 from date_parse_client import calendar
-from datetime import datetime
 from error_handler import ErrorHandler
-from json import dumps
 from nlp_client import nlp
 from redis_client import redis
 from safe_threading import safe_thread
-from threading import Event
-from time import sleep
 
 
 class MentionListener:
@@ -39,6 +42,7 @@ class MentionListener:
                 for feature in facet.features:
                     if isinstance(feature, Mention) and feature.did == self.at_client.account_did:
                         return record.text, uri, op.cid
+        return None
 
     def enqueue_reminder(self, did: str, run_at: datetime, post_cid: str, post_uri: str) -> None:
         handle = self.at_client.resolve_handle(did)
@@ -57,6 +61,7 @@ class MentionListener:
             if ent.label_ in ("DATE", "TIME"):
                 parsed_date_struct, _ = calendar.parse(ent.text)
                 return datetime(*parsed_date_struct[:6])
+        return None
 
     def handle_firehose_event(self, message_frame: MessageFrame) -> None:
         commit = parse_subscribe_repos_message(message_frame)
@@ -77,10 +82,10 @@ class MentionListener:
     def run(self, stop_event: Event) -> None:
         client = FirehoseSubscribeReposClient()
 
-        def run(_):
+        def target(_: Any) -> None:
             client.start(self.handle_firehose_event)
 
-        firehose_thread = safe_thread(target=run, name="FirehoseThread", daemon=True)
+        firehose_thread = safe_thread(target=target, name="FirehoseThread", daemon=True)
         firehose_thread.start()
         try:
             while not stop_event.is_set():

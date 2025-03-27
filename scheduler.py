@@ -1,9 +1,10 @@
-from at_client import AtClient
 from json import loads
-from redis_client import redis
 from threading import Event
-from time import time, sleep
-from typing import TypedDict
+from time import sleep, time
+from typing import List, TypedDict, cast
+
+from at_client import AtClient
+from redis_client import redis
 
 
 class Task(TypedDict):
@@ -28,7 +29,7 @@ class Scheduler:
     def run(self, stop_event: Event) -> None:
         while not stop_event.is_set():
             now = time()
-            tasks = redis.zrangebyscore("task_queue", 0, now)
+            tasks = cast(List[bytes], redis.zrangebyscore("task_queue", 0, now))
             for raw_task in tasks:
                 task: Task = loads(raw_task)
                 self.run_task(task)

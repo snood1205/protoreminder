@@ -1,10 +1,13 @@
-from redis import from_url
-from config import REDIS_URL
 from logging import error
 from shutil import get_terminal_size
-from subprocess import call, DEVNULL
+from subprocess import DEVNULL, call
+from sys import exit
 
-redis = from_url(REDIS_URL)
+from redis import Redis, from_url
+
+from config import REDIS_URL
+
+redis: Redis = from_url(REDIS_URL)  # type: ignore[no-untyped-call]
 
 
 def width() -> int:

@@ -1,13 +1,14 @@
+from signal import SIGINT, SIGTERM, signal
+
 from at_client import AtClient
 from error_handler import ErrorHandler
 from mention_listener import MentionListener
 from redis_client import check_redis
 from safe_threading import handle_shutdown_signal, safe_thread
 from scheduler import Scheduler
-from signal import signal, SIGINT, SIGTERM
 
 
-def main():
+def main() -> None:
     check_redis()
     signal(SIGINT, handle_shutdown_signal)
     signal(SIGTERM, handle_shutdown_signal)

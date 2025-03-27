@@ -1,6 +1,8 @@
-from at_client import AtClient
-from atproto_core.cid import CIDType as CID
 from logging import warning
+
+from atproto_core.cid import CIDType as CID
+
+from at_client import AtClient
 
 
 class ErrorHandler:
