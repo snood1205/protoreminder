@@ -2,6 +2,7 @@ from atproto import Client, IdResolver, client_utils
 from atproto_client.models.app.bsky.feed.post import ReplyRef
 from atproto_client.models.com.atproto.repo.strong_ref import Main
 from config import ACCOUNT_HANDLE, ACCOUNT_PASSWORD
+from exceptions import DidResolveException, HandleResolveException
 
 
 class AtClient:
@@ -40,9 +41,3 @@ class AtClient:
         return did
 
 
-class DidResolveException(BaseException):
-    pass
-
-
-class HandleResolveException(BaseException):
-    pass
