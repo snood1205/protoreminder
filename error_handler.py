@@ -1,7 +1,5 @@
 from logging import warning
 
-from atproto_core.cid import CIDType as CID
-
 from at_client import AtClient
 
 
@@ -12,14 +10,16 @@ class ErrorHandler:
     def __init__(self, at_client: AtClient):
         self.at_client = at_client
 
-    def handle_no_run_at(self, did: str, parent_cid: CID, parent_uri: str) -> None:
+    def handle_no_run_at(self, did: str, parent_cid: str, parent_uri: str, root_uri: str) -> None:
         warning(f"No run at was parsed for post at URI: {parent_uri}")
         handle = self.at_client.resolve_handle(did)
         post = AtClient.build_mention_post(handle, did, self.NO_RUN_MSG)
-        self.at_client.post_reply(post, str(parent_cid), parent_uri)
+        self.at_client.post_reply(post, parent_cid, parent_uri, root_uri)
 
-    def handle_run_at_in_past(self, did: str, parent_cid: CID, parent_uri: str) -> None:
+    def handle_run_at_in_past(
+        self, did: str, parent_cid: str, parent_uri: str, root_uri: str
+    ) -> None:
         warning(f"Run at was parsed to be in the past for post at URI: {parent_uri}")
         handle = self.at_client.resolve_handle(did)
         post = AtClient.build_mention_post(handle, did, self.PAST_MSG)
-        self.at_client.post_reply(post, str(parent_cid), parent_uri)
+        self.at_client.post_reply(post, parent_cid, parent_uri, root_uri)

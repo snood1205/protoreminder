@@ -1,6 +1,7 @@
-from atproto import Client, IdResolver, client_utils
+from atproto import Client, IdResolver
 from atproto_client.models.app.bsky.feed.post import ReplyRef
 from atproto_client.models.com.atproto.repo.strong_ref import Main
+from atproto_client.utils import TextBuilder
 
 from config import ACCOUNT_HANDLE, ACCOUNT_PASSWORD
 from exceptions import DidResolveException, HandleResolveException
@@ -13,14 +14,15 @@ class AtClient:
         self.account_did = self.client.me.did
         self.id_resolver = IdResolver()
 
-    def post_reply(self, post: client_utils.TextBuilder, parent_cid: str, parent_uri: str) -> None:
-        parent = Main(cid=parent_cid, uri=parent_uri)
-        reply_to = ReplyRef(parent=parent, root=parent)
+    def post_reply(self, post: TextBuilder, cid: str, parent_uri: str, root_uri: str) -> None:
+        parent = Main(cid=cid, uri=parent_uri)
+        root = Main(cid=cid, uri=root_uri)
+        reply_to = ReplyRef(parent=parent, root=root)
         self.client.send_post(post, reply_to=reply_to)
 
     @staticmethod
-    def build_mention_post(handle: str, did: str, text: str) -> client_utils.TextBuilder:
-        post = client_utils.TextBuilder()
+    def build_mention_post(handle: str, did: str, text: str) -> TextBuilder:
+        post = TextBuilder()
         post.mention(f"@{handle}", did)
         post.text(text)
         return post

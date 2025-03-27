@@ -10,8 +10,9 @@ from redis_client import redis
 class Task(TypedDict):
     did: str
     handle: str
-    post_cid: str
-    post_uri: str
+    cid: str
+    parent_uri: str
+    root_uri: str
 
 
 class Scheduler:
@@ -21,10 +22,11 @@ class Scheduler:
     def run_task(self, task: Task) -> None:
         handle = task["handle"]
         did = task["did"]
-        parent_cid = task["post_cid"]
-        parent_uri = task["post_uri"]
+        cid = task["cid"]
+        parent_uri = task["parent_uri"]
+        root_uri = task["root_uri"]
         post = AtClient.build_mention_post(handle, did, ", your reminder is ready!")
-        self.at_client.post_reply(post, parent_cid, parent_uri)
+        self.at_client.post_reply(post, cid, parent_uri, root_uri)
 
     def run(self, stop_event: Event) -> None:
         while not stop_event.is_set():
