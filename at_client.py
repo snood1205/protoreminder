@@ -1,4 +1,4 @@
-from atproto import Client, IdResolver, client_utils, models
+from atproto import Client, IdResolver, client_utils
 from atproto_client.models.app.bsky.feed.post import ReplyRef
 from atproto_client.models.com.atproto.repo.strong_ref import Main
 from config import ACCOUNT_HANDLE, ACCOUNT_PASSWORD

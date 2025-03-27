@@ -1,17 +1,18 @@
+from at_client import AtClient
 from atproto import models, AtUri, CAR
-from atproto_core.cid import CIDType as CID
 from atproto_client.models.app.bsky.richtext.facet import Mention
 from atproto_client.models.com.atproto.sync.subscribe_repos import Commit
-from atproto_firehose.models import MessageFrame
-from at_client import AtClient
+from atproto_core.cid import CIDType as CID
 from atproto_firehose import FirehoseSubscribeReposClient, parse_subscribe_repos_message
-from error_handler import ErrorHandler
-from safe_threading import safe_thread
+from atproto_firehose.models import MessageFrame
 from date_parse_client import calendar
 from datetime import datetime
+from error_handler import ErrorHandler
 from json import dumps
 from nlp_client import nlp
 from redis_client import redis
+from safe_threading import safe_thread
+from threading import Event
 from time import sleep
 
 
@@ -39,7 +40,7 @@ class MentionListener:
                     if isinstance(feature, Mention) and feature.did == self.at_client.account_did:
                         return record.text, uri, op.cid
 
-    def enqueue_reminder(self, did: str, run_at: datetime, post_cid: str, post_uri: str):
+    def enqueue_reminder(self, did: str, run_at: datetime, post_cid: str, post_uri: str) -> None:
         handle = self.at_client.resolve_handle(did)
         task = {
             "did": did,
@@ -73,7 +74,7 @@ class MentionListener:
             return self.error_handler.handle_run_at_in_past(commit.repo, cid, post_uri)
         self.enqueue_reminder(commit.repo, run_at, str(cid), post_uri)
 
-    def run(self, stop_event):
+    def run(self, stop_event: Event) -> None:
         client = FirehoseSubscribeReposClient()
 
         def run(_):
